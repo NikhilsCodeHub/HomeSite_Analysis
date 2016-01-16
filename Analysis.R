@@ -20,7 +20,7 @@ na.cols <- sapply(dtrain[,1:dim(dtrain)[2]],anyNA)
 
 na.cols <- data.frame(ColNames=rownames(data.frame(na.cols)),ColNA = na.cols)
 
-na.cols[na.cols$ColNA,"ColNames"]
+na.cols[na.cols$ColNA,]
 
 #                            ColNames ColNA
 # PersonalField7       PersonalField7  TRUE
@@ -34,18 +34,27 @@ na.cols[na.cols$ColNA,"ColNames"]
 # PropertyField38     PropertyField38  TRUE
 # GeographicField63 GeographicField63  TRUE
 
-levels(dtrain$PersonalField7) <- c("N", "Y", "NA")
+## Lets group Dataset columns based on name : 
+## Field, PersonalField, PropertyField, GeographicField, SalesField, CoverageField
+
+df_personal <- select(dtrain, starts_with("PersonalField"))
+
+
+df_personal$PersonalField84[is.na(df_personal$PersonalField84)] <- "0"
+df_personal$PersonalField84 <- factor(df_personal$PersonalField84)
+lev<-levels(dtrain$PersonalField84)
+lev[length(lev)+1] <- "0"
+levels(dtrain$PersonalField84) <-  lev
+
+## Verify 
+## table(df_personal$PersonalField84 , useNA = "ifany")
+
+
+table(df_personal$PersonalField7 , useNA = "ifany")
+
+levels(dtrain$PersonalField7) <- c("N", "Y", "0")
 dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
 
-dtrain$PersonalField84 <- factor(dtrain$PersonalField84)
-c<-levels(dtrain$PersonalField84)
-c[length(c)+1] <- "0"
-levels(dtrain$PersonalField84) <-  c
-dtrain$PersonalField84[is.na(dtrain$PersonalField84)]<-"0"
-
-
-levels(dtrain$PropertyField36) <- c("N", "Y", "0")
-dtrain$PropertyField36[is.na(dtrain$PropertyField36)]<-"0"
 
 ## Identify each column as factor or continuous variable
 
@@ -55,7 +64,30 @@ dtrain$PropertyField36[is.na(dtrain$PropertyField36)]<-"0"
 ## If columns have more than 50 factors then
 ##  identify ways to split the data and create new columns and refactor.
 ##    Eg : XG, XA, YB, YD   split values to :>  X | G, X | A, Y | B  so on..
-##
+##    PersonalField16, PersonalField17, PersonalField18, PersonalField19
+  
+
+  df_personal$PersonalField16A <- substr(x = df_personal$PersonalField16,start = 1,stop = 1)
+  df_personal$PersonalField16B <- substr(x = df_personal$PersonalField16,start = 2,stop = 2)
+  
+  df_personal$PersonalField17A <- substr(x = df_personal$PersonalField17,start = 1,stop = 1)
+  df_personal$PersonalField17B <- substr(x = df_personal$PersonalField17,start = 2,stop = 2)
+  
+  df_personal$PersonalField18A <- substr(x = df_personal$PersonalField18,start = 1,stop = 1)
+  df_personal$PersonalField18B <- substr(x = df_personal$PersonalField18,start = 2,stop = 2)
+  
+  df_personal$PersonalField19A <- substr(x = df_personal$PersonalField19,start = 1,stop = 1)
+  df_personal$PersonalField19B <- substr(x = df_personal$PersonalField19,start = 2,stop = 2)
+  
+  train_df_personal <- df_personal[!is.na(df_personal$PersonalField7),]
+  train_df_personal <- select(train_df_personal, -tempA, -PersonalField16,-PersonalField17, -PersonalField18, -PersonalField19)  
+
+  test_df_personal <- df_personal[is.na(df_personal$PersonalField7),]
+
+  glm_fit <- glm(as.factor(PersonalField7)~., train_df_personal, family=binomial("logit"))
+  
+  predict(glm_fit, test_df_personal)
+  
 ## unfactor any columns with nlevels > 15
 
 
@@ -125,7 +157,7 @@ pred_rf <- predict(glm_fit, dtest)
 my_solution <- data.frame(QuoteNumber = dtest$QuoteNumber, QuoteConversion_Flag = pred_rf)
 
 # Write your solution away to a csv file with the name my_solution.csv
-write.csv(my_solution, file=paste0("Titanic_Submission_", format(Sys.time(), "%m%d%Y%H%M"),".csv") , row.names=FALSE)
+write.csv(my_solution, file=paste0("HomeSite_Submission_", format(Sys.time(), "%m%d%Y%H%M"),".csv") , row.names=FALSE)
 
 
 
