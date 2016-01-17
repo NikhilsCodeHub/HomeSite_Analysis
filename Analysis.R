@@ -45,9 +45,9 @@ df_personal <- select(dtrain, starts_with("PersonalField"))
 
 df_personal$PersonalField84[is.na(df_personal$PersonalField84)] <- "0"
 df_personal$PersonalField84 <- factor(df_personal$PersonalField84)
-lev<-levels(dtrain$PersonalField84)
+lev<-levels(df_personal$PersonalField84)
 lev[length(lev)+1] <- "0"
-levels(dtrain$PersonalField84) <-  lev
+levels(df_personal$PersonalField84) <-  lev
 
 ## Verify 
 ## table(df_personal$PersonalField84 , useNA = "ifany")
@@ -55,8 +55,8 @@ levels(dtrain$PersonalField84) <-  lev
 
 table(df_personal$PersonalField7 , useNA = "ifany")
 
-levels(dtrain$PersonalField7) <- c("N", "Y", "0")
-dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
+# levels(dtrain$PersonalField7) <- c("N", "Y", "0")
+# dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
 
 
 ## Identify each column as factor or continuous variable
@@ -130,19 +130,17 @@ dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
   ## Imputing missing values in PropertyField
   ## ---------------------------------------------------
   ## 
+
+  
+  #   impute_Col <- function(dFrame, naCols){
+  #     if(length(grep("Y|N", levels(df_property[PropertyField3), value = FALSE))==2){
+  #       
+  #     }
+  #   }
+  
   
   df_property <- select(dtrain, starts_with("PropertyField"))
   
-  
-  #   impute_Col <- function(dFrame, naCols){
-  #     
-  #     if(length(grep("Y|N", levels(df_property[PropertyField3), value = FALSE))==2){
-  #       
-  #       
-  #     }
-  #     
-  #     
-  #   }
 
     
   ## List NA columns
@@ -222,6 +220,7 @@ dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
   ## ---------------------------------------------------
   ## Combining All Datasets
   ## ---------------------------------------------------  
+  
   dtrain_final <- select(dtrain, -starts_with("PropertyField"))
   dtrain_final <- select(dtrain_final, -starts_with("PersonalField"))
   dtrain_final <- select(dtrain_final, -starts_with("GeographicField"), -Original_Quote_Date, -QuoteNumber)
@@ -232,7 +231,8 @@ dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
   ## --------------------------------------------------
   ## Split Training Set into 2 for model validation
   ## --------------------------------------------------
-  
+
+  set.seed(2016)
   rlst <- createDataPartition(dtrain_final$QuoteConversion_Flag, p = 0.75, list = FALSE)
   rtrain <- dtrain_final[rlst,]
   rvalidate <- dtrain_final[-rlst,]
@@ -240,19 +240,34 @@ dtrain$PersonalField7[is.na(dtrain$PersonalField7)]<-"0"
   ## --------------------------------------------------
   ## Build A Model Fit
   ## --------------------------------------------------
-  
+  date()
   set.seed(2016)
   rfit <- train(as.factor(QuoteConversion_Flag)~., data =  rtrain, method="rpart")  
   
+  date()
   set.seed(2016)
   rf_fit <- train(as.factor(QuoteConversion_Flag)~., data = rtrain, method="rf")
   
+  date()
   set.seed(2016)
   glm_fit <- glm(QuoteConversion_Flag~., data=rtrain, family=binomial("logit")) 
+  date()
+  
+  ## --------------------------------------------------
+  ## Prediction
+  ## --------------------------------------------------
+
+  rf_pred <- predict(rf_fit, rvalidate)
   
   
-
-
+  
+  
+  
+  
+  
+  
+  
+  
 ## unfactor those columns as they have more than 50 factors
 ntrain$PersonalField16 <- as.character(ntrain$PersonalField16)
 ntrain$PersonalField17 <- as.character(ntrain$PersonalField17)
