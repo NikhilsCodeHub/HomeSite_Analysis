@@ -43,27 +43,89 @@ process_personal_16_17_18_19 <- function(dfData){
   dfData$PersonalField19A <- substr(x = dfData$PersonalField19,start = 1,stop = 1)
   dfData$PersonalField19B <- substr(x = dfData$PersonalField19,start = 2,stop = 2)
   
-  dfData <- dfData[,-c("PersonalPersonalField16", "PersonalPersonalField17", "PersonalPersonalField18", "PersonalPersonalField19")]
+#    dfData <- dfData[,-"PersonalField16"]
+#    dfData <- dfData[,-"PersonalField17"]
+#    dfData <- dfData[,-"PersonalField18"]
+#    dfData <- dfData[,-"PersonalField19"]
+   dfData <- tbl_df(dfData)
+   dfData <- select(dfData,-PersonalField16, -PersonalField17, -PersonalField18, -PersonalField19)
   
   return(dfData)
 }
 
-check_factor_levels <- function(col_vector){
-  if (length(unique(col_vector)) < 27){
-    rnames <- rownames(table(col_vector))
-    
-    if (length(grepl("Y|N",rnames))==length(rnames) & length(rnames) == 2){
-    col_vector <- factor(col_vector, levels = c("Y", "N"))
-    print("Data is Y|N levels.")
+set_factor_levels <- function(dfData, dfSummary){
+
+  for(col in colnames(dfData)[1:40]){
+    print("-------------------------")
+    print(paste("Processing - ", col))
+    print(dfSummary[dfSummary$colNames==col,"typeOfCol"])
+    print(dfSummary[dfSummary$colNames==col,"colLevels"])
+    rnames <- strsplit(dfSummary[dfSummary$colNames==col,"colLevels"],",")[[1]]
+    print(dfSummary[dfSummary$colNames==col,"colNames"])
+    if (dfSummary[dfSummary$colNames==col,"typeOfCol"] == "character")    
+    {
+      print("this is a character column type")
+      print(dfSummary[dfSummary$colNames==col,"nlevels"])
+      if (length(grepl("Y|N",rnames))==length(rnames) & length(rnames) == 2)
+      {
+        print("Found Y and N")
+        print(rnames)
+        dfData[,col] <- factor(dfData[,col], levels = rnames)
+        
+      } 
+      else if (length(grepl("[A-Z]",rnames))==length(rnames)  & any(grepl("[A-Z]",rnames)))
+      {
+        print("Found A - Z")
+        print(rnames)
+        dfData[,col] <- factor(dfData[,col], levels = rnames)
+      
+      }
     }
-    else if (length(grepl("[A-Z]",rnames))==length(rnames)){
-      col_vector <- factor(col_vector, levels = LETTERS)
-      print("Data is A-Z levels.")
+    else
+    {
+      print("Not a character type")
+    }
+    
+    
+  }
+    
+  return(dfData)
+}
+
+set_factor_levels0 <- function(col_vector,dfSummary.row){
+  
+  print("-------------------------")
+  print(dfSummary.row$colNames)
+  print(nrow(dfSummary.row))
+  print(str(col_vector))
+  
+  if (length(unique(col_vector)) < 27 & dfSummary.row$typeOfCol=="character"){
+    rnames <- strsplit(dfSummary.row$colLevels,",")
+    print(paste("nlevels-", rnames[[1]]))
+    
+
+    if (length(grepl("Y|N",rnames))==length(rnames) & length(rnames) == 2){
+      print(str(col_vector))
+      col_vector <- as.factor(col_vector)
+      levels(col_vector) <- rnames[[1]]
+      print(paste("A -", str(col_vector)))
+      print(paste("B -",rnames[[1]]))
+      # print("Data is Y|N levels.")
+    }
+    else if (length(grepl("[A-Z]",rnames))==length(rnames) & any(grepl("[A-Z]",rnames))){
+
+      print("inside else block")
+      print(paste("1 -", str(col_vector)))
+      print(paste("2 -",rnames[[1]], collapse = ":", sep = ","))
+      levels(col_vector) <- rnames[[1]]
+      #col_vector <- as.factor(col_vector)
+      # print("Data is A-Z levels.")
     }
     
   }
   else {
-    
+    # Do nothing if factors more than 26
+    # print("Doing Nothing")
     
   }
   return(col_vector)
@@ -77,8 +139,10 @@ impute_missing_values <- function(col_vector){
     rnames <- rownames(table(col_vector))
     if (length(grepl("Y|N",rnames))==length(rnames) & length(rnames) == 2){
       misng <- length(is.na(col_vector)) 
-      ratioYN <- length(c[c=="Y" & !is.na(c)])/length(c[c=="N" & !is.na(c)])
-      if(ratioYN<1){
+      ratioYN <- length(col_vector[col_vector=="Y" & !is.na(col_vector)])/length(col_vector[col_vector=="N" & !is.na(col_vector)])
+
+
+      if (ratioYN < 1){
         y_counts <- round(length(col_vector[is.na(col_vector)]) * ratioYN)
         if(y_counts>0){
           col_vector[is.na(col_vector)][1:y_counts] <- "Y"
@@ -134,21 +198,21 @@ dataset_summary <- function(dfTrain, dfTest, colOutcome){
   dfTest[,colOutcome] <- NA
   dfData <- rbind(dfTrain, dfTest)
 
-  df <-  data.frame("colNames"=colnames(dfData))
+  df <-  data.frame("colNames"=colnames(dfData), stringsAsFactors = FALSE)
   for (col in colnames(dfData))
   {
     #print(col)
     df$typeOfCol[df$colNames==col] <- typeof(dfData[,col])
     #print(typeof(dfData[,col]))
-    df$uniqueGroupsCount[df$colNames==col] <- as.integer(length(unique(dfData[,col])))
+    df$nlevels[df$colNames==col] <- as.integer(length(unique(dfData[,col])))
     #print(as.integer(length(unique(dfData[,col]))))
     
     if (length(unique(dfData[,col])) < 27){
-      df[df$colNames==col, "uniqueGroups"] <- paste(rownames(table(dfData[,col])), collapse = ",")
+      df[df$colNames==col, "colLevels"] <- paste(rownames(table(dfData[,col])), collapse = ",")
       #print(paste(rownames(table(dfData[,col])), collapse = ","))
     }
     else {
-      df$uniqueGroups[df$colNames==col] <- c("More than 27")
+      df$colLevels[df$colNames==col] <- c("More than 27")
       #print("More Than 27")
     }
     df$naRowCount[df$colNames==col] <- length(dfData[is.na(dfData[,col]),col])

@@ -2,11 +2,39 @@
 # OPS Scripts that performs the magic
 ###
 
+library(rpart)
+library(randomForest)
+library(caret)
+library(dplyr)
+
+
 ##----- Load, Clean and Impute Data
 ##------
-dtrain <- read.csv("train.csv", header = TRUE, na.strings = c(" ", ""))
-na.cols <- sapply(dtrain[,1:dim(dtrain)[2]],anyNA)
-na.cols
+dtrain <- read.csv("train.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
+dtest <- read.csv("test.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
+
+dfSummary <- dataset_summary(dtrain, dtest, colOutcome = "QuoteConversion_Flag")
+
+dtrain_missing <- tabulate_missing_values(dtrain)
+
+dtrain_final <- process_personal_16_17_18_19(dtrain)
+
+dtrain_final[,dtrain_missing$ColNames] <- lapply(dtrain_final[,dtrain_missing$ColNames],impute_missing_values)
+
+
+
+dtrain_final <- tbl_df(dtrain_final)
+
+dtrain_final <- select(dtrain_final, -Original_Quote_Date, -QuoteNumber)
+
+
+
+for (col in colnames(dtrain_final)[1:20]){
+  
+  print(paste("Processing ",col))
+  dtrain_final[,col] <- set_factor_levels(col_vector = dtrain_final[,col], dfSummary.row = dfSummary[dfSummary$colNames==col,])
+  
+}
 
 dtrain <- ImputeData(dtrain)
 na.cols <- sapply(dtrain[,1:dim(dtrain)[2]],anyNA)
