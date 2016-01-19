@@ -8,7 +8,7 @@ library(dplyr)
 
 
 
-dtrain <- read.csv("train.csv", stringsAsFactors = TRUE, na.strings = c(""," ", "NaN", "NA", "Inf"))
+dtrain <- read.csv("train.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
 dim(dtrain)
 ## 260753    299
 
@@ -23,6 +23,21 @@ na.cols <- data.frame(ColNames=rownames(data.frame(na.cols)),ColNA = na.cols)
 
 na.cols <- na.cols[na.cols$ColNA,]
 na.cols <- tbl_df(na.cols)
+
+for (col in na.cols$ColNames)
+{
+  print(col)
+  na.cols$typeOfCol[na.cols$ColNames==col] <- typeof(dtrain[,col])
+  na.cols$uniqueGroupsCount[na.cols$ColNames==col] <- length(unique(dtrain[,col]))-1
+  if (length(unique(dtrain[,col]))-1 < 27){
+    na.cols$uniqueGroups[na.cols$ColNames==col] <- paste(rownames(table(dtrain[,col])), collapse = ",")
+  }
+  else {
+    na.cols$uniqueGroups[na.cols$ColNames==col] <- c(">27")
+  }
+}
+na.cols 
+
 
 
 #                            ColNames ColNA
@@ -293,7 +308,8 @@ glm_fit <- glm(QuoteConversion_Flag~., data=ntrain, family=binomial("logit"))
 
 ## Load Test Data
 
-dtest <- read.csv("test.csv", stringsAsFactors = FALSE)
+dtest <- read.csv("test.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
+
 
 
 ## Clean Test Data

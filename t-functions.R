@@ -105,3 +105,56 @@ impute_missing_values <- function(col_vector){
   return(col_vector)
 }
 
+
+tabulate_missing_values <- function(dfData) {
+  na.cols <- sapply(dfData[,1:dim(dfData)[2]],anyNA)
+  
+  na.cols <- data.frame(ColNames=rownames(data.frame(na.cols)),ColNA = na.cols, stringsAsFactors = FALSE)
+  
+  na.cols <- na.cols[na.cols$ColNA,]
+  na.cols <- tbl_df(na.cols)
+  
+  for (col in na.cols$ColNames)
+  {
+    #print(col)
+    na.cols$typeOfCol[na.cols$ColNames==col] <- typeof(dfData[,col])
+    na.cols$uniqueGroupsCount[na.cols$ColNames==col] <- as.integer(length(unique(dfData[,col]))-1)
+    if (length(unique(dfData[,col]))-1 < 27){
+      na.cols$uniqueGroups[na.cols$ColNames==col] <- paste(rownames(table(dfData[,col])), collapse = ",")
+    }
+    else {
+      na.cols$uniqueGroups[na.cols$ColNames==col] <- c(">27")
+    }
+    na.cols$naRowCount[na.cols$ColNames==col] <- length(dfData[is.na(dfData[,col]),col])
+  }
+  return(na.cols)
+}
+
+dataset_summary <- function(dfTrain, dfTest, colOutcome){
+  dfTest[,colOutcome] <- NA
+  dfData <- rbind(dfTrain, dfTest)
+
+  df <-  data.frame("colNames"=colnames(dfData))
+  for (col in colnames(dfData))
+  {
+    #print(col)
+    df$typeOfCol[df$colNames==col] <- typeof(dfData[,col])
+    #print(typeof(dfData[,col]))
+    df$uniqueGroupsCount[df$colNames==col] <- as.integer(length(unique(dfData[,col])))
+    #print(as.integer(length(unique(dfData[,col]))))
+    
+    if (length(unique(dfData[,col])) < 27){
+      df[df$colNames==col, "uniqueGroups"] <- paste(rownames(table(dfData[,col])), collapse = ",")
+      #print(paste(rownames(table(dfData[,col])), collapse = ","))
+    }
+    else {
+      df$uniqueGroups[df$colNames==col] <- c("More than 27")
+      #print("More Than 27")
+    }
+    df$naRowCount[df$colNames==col] <- length(dfData[is.na(dfData[,col]),col])
+  }
+  return(df)
+  
+  
+}
+
