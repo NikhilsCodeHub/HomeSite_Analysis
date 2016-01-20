@@ -24,8 +24,9 @@ createFits <- function(df){
 ## ptype -- raw or prob
 ## newData -- Test dataset to predict on
 generatePredictions <- function(lstFit, newData, ptype){
+  print(names(lstFit))
   set.seed(2016)
-  pred <- sapply(lstFit, predict.train, newdata=newData, type=ptype)
+  pred <- lapply(lstFit, predict.train, newdata=newData, type=ptype)
   return(as.data.frame(pred))
 }
 
@@ -64,6 +65,7 @@ process_personal_16_17_18_19 <- function(dfData){
 
 set_factor_levels <- function(dfData, dfSummary){
 
+  counter <- 1
   for(col in colnames(dfData)){
     print("-------------------------")
     print(paste("Processing - ", col))
@@ -79,14 +81,18 @@ set_factor_levels <- function(dfData, dfSummary){
       {
         print("Found Y and N")
         print(rnames)
-        dfData[,col] <- factor(dfData[,col], levels = rnames)
+#         newLevels <- paste(rnames,substr(col, 1,2), counter, sep = "" )
+#         dfData[,col] <- factor(dfData[,col], levels=rnames, labels = newLevels)
+        dfData[,col] <- factor(dfData[,col], levels=rnames)
         
       } 
       else if (length(grepl("[A-Z]",rnames))==length(rnames)  & any(grepl("[A-Z]",rnames)))
       {
         print("Found A - Z")
         print(rnames)
-        dfData[,col] <- factor(dfData[,col], levels = rnames)
+#         newLevels <- paste(rnames, substr(col, 1,2), counter, sep = "" )
+#         dfData[,col] <- factor(dfData[,col], levels=rnames, labels = newLevels)
+        dfData[,col] <- factor(dfData[,col], levels=rnames)
       
       }
     }
@@ -95,50 +101,12 @@ set_factor_levels <- function(dfData, dfSummary){
       print("Not a character type")
     }
     
-    
+    counter <- counter +1
   }
     
   return(dfData)
 }
 
-set_factor_levels0 <- function(col_vector,dfSummary.row){
-  
-  print("-------------------------")
-  print(dfSummary.row$colNames)
-  print(nrow(dfSummary.row))
-  print(str(col_vector))
-  
-  if (length(unique(col_vector)) < 27 & dfSummary.row$typeOfCol=="character"){
-    rnames <- strsplit(dfSummary.row$colLevels,",")
-    print(paste("nlevels-", rnames[[1]]))
-    
-
-    if (length(grepl("Y|N",rnames))==length(rnames) & length(rnames) == 2){
-      print(str(col_vector))
-      col_vector <- as.factor(col_vector)
-      levels(col_vector) <- rnames[[1]]
-      print(paste("A -", str(col_vector)))
-      print(paste("B -",rnames[[1]]))
-      # print("Data is Y|N levels.")
-    }
-    else if (length(grepl("[A-Z]",rnames))==length(rnames) & any(grepl("[A-Z]",rnames))){
-
-      print("inside else block")
-      print(paste("1 -", str(col_vector)))
-      print(paste("2 -",rnames[[1]], collapse = ":", sep = ","))
-      levels(col_vector) <- rnames[[1]]
-      #col_vector <- as.factor(col_vector)
-      # print("Data is A-Z levels.")
-    }
-    
-  }
-  else {
-    # Do nothing if factors more than 26
-    # print("Doing Nothing")
-    
-  }
-  return(col_vector)
-}
 
 impute_missing_values <- function(col_vector){
   if (typeof(col_vector) == "integer"){
@@ -261,11 +229,33 @@ createModelFits <- function(df){
   print(date())
   print(colnames(df)[2])
   set.seed(2016)
-  fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4)
+  fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4, classProbs = FALSE)
   fit <- train(as.factor(QuoteConversion_Flag)~., data = df, method = "rf", trControl = fitControl)
-  date()
+  print(date())
   return(fit)
 }
 
 
+# feature.names=names(dtrain_final)
+# 
+# for (f in feature.names) {
+#   if (class(dtrain_final[[f]])=="factor") {
+#     levels <- unique(c(dtrain_final[[f]]))
+#     print(f)
+#     print(levels(dtrain_final[[f]]))
+#     make.names(levels(dtrain_final[[f]]))
+#   }
+# }
 
+check_colNames <- function(df){
+  for(col in colnames(df))
+  {
+    if(class(df[,col])=="factor")
+    {
+      print(col)
+      print(paste(levels(df[,col]), collapse = ", "))
+      #print(make.names(levels(df[,col])))
+    }
+    
+  }
+}

@@ -22,44 +22,123 @@ dtest_final <- process_personal_16_17_18_19(dtest)
 
 dfSummary <- dataset_summary(dtrain_final, dtest_final, colOutcome = "QuoteConversion_Flag")
 
-dtrain_missing <- tabulate_missing_values(dtrain_final)
 
 
-dtrain_final[,dtrain_missing$ColNames] <- lapply(dtrain_final[,dtrain_missing$ColNames],impute_missing_values)
+## 
+## --- Process the Train Dataset
+## 
+  dtrain_missing <- tabulate_missing_values(dtrain_final)
+  
+  
+  dtrain_final[,dtrain_missing$ColNames] <- lapply(dtrain_final[,dtrain_missing$ColNames],impute_missing_values)
+  
+  dtrain_final$Field10 <- gsub(",","",dtrain_final$Field10)
+  
+  
+  dtrain_final <- tbl_df(dtrain_final)
+  
+  dtrain_final <- select(dtrain_final, -Original_Quote_Date, -QuoteNumber)
+  
+  dtrain_final <- data.frame(dtrain_final)
+  dfSummary <- data.frame(dfSummary)
+  
+  #colnames(dtrain_final)  <- paste(colnames(dtrain_final), "i", sep="")
+  dtrain_final <- set_factor_levels(dtrain_final, dfSummary)
+
+  #str(dtrain_final, list.len=20)
 
 
+##
+## --- Process the Test Dataset
+## 
+  dtest_missing <- tabulate_missing_values(dtest_final)
+  
+  dtest_final[,dtest_missing$ColNames] <- lapply(dtest_final[,dtest_missing$ColNames],impute_missing_values)
+  
+  dtest_final$Field10 <- gsub(",","",dtest_final$Field10)
+  
+  dtest_final <- select(dtest_final, -Original_Quote_Date, -QuoteNumber)
+  
+  #colnames(dtest_final)  <- paste(colnames(dtest_final), "i", sep="")
+  dtest_final <- set_factor_levels(dtest_final, dfSummary)
 
-dtrain_final <- tbl_df(dtrain_final)
 
-dtrain_final <- select(dtrain_final, -Original_Quote_Date, -QuoteNumber)
-
-# dtrain_final <- data.frame(dtrain_final)
-# dfSummary <- data.frame(dfSummary)
-
-dtrain_final <- set_factor_levels(dtrain_final, dfSummary)
-
-dsList <- split_datasets(dtrain_final[1:200,])
-
-lstFits <- lapply(dsList, createModelFits)
-
-dtest_missing <- tabulate_missing_values(dtest_final)
-
-dtest_final[,dtest_missing$ColNames] <- lapply(dtest_final[,dtest_missing$ColNames],impute_missing_values)
-
-dtest_final <- select(dtest_final, -Original_Quote_Date, -QuoteNumber)
-
-dtest_final <- set_factor_levels(dtest_final, dfSummary)
-
-lstPred <- generatePredictions(lstFit = lstFits, newData = dtest_final, ptype = "prob")
-
-##------ Create Data Partition for Validation
+##------ 
+## -----Create Data Partition for Validation
 ##------
-lst_train <- createDataPartition(dtrain$Pclass, p = 0.7, list = FALSE)
 
-itrain <- dtrain[lst_train, ]
-ivalidate <- dtrain[-lst_train,]
+  lst_train <- createDataPartition(dtrain_final$QuoteConversion_Flag, p = 0.6, list = FALSE)
+  
+  itrain <- dtrain_final[lst_train, ]
+  ivalidate <- dtrain_final[-lst_train,]
+
+    
+## 
+## -- Split Datasets based on columns
+## 
+
+  dsList <- split_datasets(itrain[1:5000,])
+  
+  lstFitsTrain <- lapply(dsList, createModelFits)
 
 
+## 
+## -- Generate Predictions on the iValidate Dataset
+## 
+  
+  #lstPred <- generatePredictions(lstFit = lstFits, newData = dtest_final, ptype = "prob")
+  lstPredTrain <- generatePredictions(lstFit = lstFitsTrain, newData = ivalidate, ptype = "raw")
+
+  
+## 
+## -- Combine Predictions and Append reference from iValidate
+##  
+  
+  dfCombo <- cbind(QuoteConversion_Flag =ivalidate$QuoteConversion_Flag, lstPredTrain)
+  
+## 
+## -- Check Confusion Matrix
+## 
+
+  cfMx <- calcConfusionMx(dfCombo[,1:4], dfCombo$QuoteConversion_Flag)
+  
+## 
+## -- Generate Combo Fit
+## 
+  
+  fitCombo <- createModelFits(dfCombo)
+  
+## 
+## -- Generate Combo Prediction on iValidate to crosscheck
+## 
+
+  set.seed(2016)
+  predCombo <- predict.train(fitCombo, ivalidate, type = "raw")
+  
+  
+  
+## -------------------------------------------
+## -- Generate 1 set Predictions on Test Data
+## 
+
+  dfCombo <- generatePredictions(lstFit = lstFitsTrain, newData = dtest_final, ptype = "raw")
+
+  
+## -------------------------------------------
+## -- Generate final Predictions on Combo Test Data
+## 
+  set.seed(2016)
+  predTest <- predict.train(fitCombo, dfCombo, type = "raw") 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 ##------ Formula Creation
 ##------
 yterm <- "as.factor(Survived)"
