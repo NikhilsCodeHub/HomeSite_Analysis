@@ -33,25 +33,24 @@ dtrain_final <- tbl_df(dtrain_final)
 
 dtrain_final <- select(dtrain_final, -Original_Quote_Date, -QuoteNumber)
 
-dtrain_final <- data.frame(dtrain_final)
-dfSummary <- data.frame(dfSummary)
+# dtrain_final <- data.frame(dtrain_final)
+# dfSummary <- data.frame(dfSummary)
 
 dtrain_final <- set_factor_levels(dtrain_final, dfSummary)
 
+dsList <- split_datasets(dtrain_final[1:200,])
 
-dtrain_final <- tbl_df(dtrain_final)
-df_personal <- select(dtrain_final, QuoteConversion_Flag, starts_with("Field"), starts_with("PersonalField"))
-df_property <- select(dtrain_final, QuoteConversion_Flag, starts_with("PropertyField"))
-df_geo <- select(dtrain_final, QuoteConversion_Flag, starts_with("GeographicField"))
-df_sales <- select(dtrain_final, QuoteConversion_Flag, starts_with("SalesField"), starts_with("CoverageField"))
+lstFits <- lapply(dsList, createModelFits)
 
+dtest_missing <- tabulate_missing_values(dtest_final)
 
-fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4)
-fit_personal <- train(QuoteConversion_Flag~., data = df_personal, method = "rf", trControl = fitControl)
-fit_sales <- train(QuoteConversion_Flag~., data = df_sales, method = "rf", trControl = fitControl)
-fit_property <- train(QuoteConversion_Flag~., data = df_property, method = "rf", trControl = fitControl)
-fit_geo <- train(QuoteConversion_Flag~., data = df_geo, method = "rf", trControl = fitControl)
+dtest_final[,dtest_missing$ColNames] <- lapply(dtest_final[,dtest_missing$ColNames],impute_missing_values)
 
+dtest_final <- select(dtest_final, -Original_Quote_Date, -QuoteNumber)
+
+dtest_final <- set_factor_levels(dtest_final, dfSummary)
+
+lstPred <- generatePredictions(lstFit = lstFits, newData = dtest_final, ptype = "prob")
 
 ##------ Create Data Partition for Validation
 ##------

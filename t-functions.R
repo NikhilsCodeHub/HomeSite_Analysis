@@ -20,8 +20,12 @@ createFits <- function(df){
   
 }
 
-generatePredictions <- function(fit, newData){
-  pred <- sapply(fit, predict.train, newdata=newData, type="raw")
+## lstFit -- List of model fits
+## ptype -- raw or prob
+## newData -- Test dataset to predict on
+generatePredictions <- function(lstFit, newData, ptype){
+  set.seed(2016)
+  pred <- sapply(lstFit, predict.train, newdata=newData, type=ptype)
   return(as.data.frame(pred))
 }
 
@@ -229,7 +233,9 @@ dataset_summary <- function(dfTrain, dfTest, colOutcome){
   
 }
 
-
+##
+## --- To be called when requiring multiple datasets based on list of rowindexes.
+## 
 createTrainDS <- function(ls, df){
   return(df[ls])
 }
@@ -237,3 +243,29 @@ createTrainDS <- function(ls, df){
 createTestDS <- function(ls, df){
   return(df[-ls])
 }
+
+
+split_datasets <- function(dfData){
+  
+  dfData <- tbl_df(dfData)
+  
+  dfpersonal <- select(dfData, QuoteConversion_Flag, starts_with("Field"), starts_with("PersonalField"))
+  dfproperty <- select(dfData, QuoteConversion_Flag, starts_with("PropertyField"))
+  dfgeo <- select(dfData, QuoteConversion_Flag, starts_with("GeographicField"))
+  dfsales <- select(dfData, QuoteConversion_Flag, starts_with("SalesField"), starts_with("CoverageField"))
+  dsList <- list(dfpersonal = dfpersonal, dfsales = dfsales, dfgeo= dfgeo, dfproperty=dfproperty)
+  return(dsList)
+}
+
+createModelFits <- function(df){
+  print(date())
+  print(colnames(df)[2])
+  set.seed(2016)
+  fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4)
+  fit <- train(as.factor(QuoteConversion_Flag)~., data = df, method = "rf", trControl = fitControl)
+  date()
+  return(fit)
+}
+
+
+
