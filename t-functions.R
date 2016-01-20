@@ -14,6 +14,11 @@ createModels <- function(fmla, idata, modelNm,...){
   return(fit)
 }
 
+createFits <- function(df){
+  fitControl <- trainControl(method = "cv", number = 5)
+  fit <- train(QuoteConversion_Flag~., data = df, method = "rf", trControl = fitControl)
+  
+}
 
 generatePredictions <- function(fit, newData){
   pred <- sapply(fit, predict.train, newdata=newData, type="raw")
@@ -50,12 +55,12 @@ process_personal_16_17_18_19 <- function(dfData){
    dfData <- tbl_df(dfData)
    dfData <- select(dfData,-PersonalField16, -PersonalField17, -PersonalField18, -PersonalField19)
   
-  return(dfData)
+  return(data.frame(dfData))
 }
 
 set_factor_levels <- function(dfData, dfSummary){
 
-  for(col in colnames(dfData)[1:40]){
+  for(col in colnames(dfData)){
     print("-------------------------")
     print(paste("Processing - ", col))
     print(dfSummary[dfSummary$colNames==col,"typeOfCol"])
@@ -171,6 +176,7 @@ impute_missing_values <- function(col_vector){
 
 
 tabulate_missing_values <- function(dfData) {
+  dfData <- data.frame(dfData)
   na.cols <- sapply(dfData[,1:dim(dfData)[2]],anyNA)
   
   na.cols <- data.frame(ColNames=rownames(data.frame(na.cols)),ColNA = na.cols, stringsAsFactors = FALSE)
@@ -197,6 +203,7 @@ tabulate_missing_values <- function(dfData) {
 dataset_summary <- function(dfTrain, dfTest, colOutcome){
   dfTest[,colOutcome] <- NA
   dfData <- rbind(dfTrain, dfTest)
+  dfData <- data.frame(dfData)
 
   df <-  data.frame("colNames"=colnames(dfData), stringsAsFactors = FALSE)
   for (col in colnames(dfData))
@@ -207,7 +214,7 @@ dataset_summary <- function(dfTrain, dfTest, colOutcome){
     df$nlevels[df$colNames==col] <- as.integer(length(unique(dfData[,col])))
     #print(as.integer(length(unique(dfData[,col]))))
     
-    if (length(unique(dfData[,col])) < 27){
+    if (length(unique(dfData[,col]))[1] < 27){
       df[df$colNames==col, "colLevels"] <- paste(rownames(table(dfData[,col])), collapse = ",")
       #print(paste(rownames(table(dfData[,col])), collapse = ","))
     }
@@ -215,10 +222,18 @@ dataset_summary <- function(dfTrain, dfTest, colOutcome){
       df$colLevels[df$colNames==col] <- c("More than 27")
       #print("More Than 27")
     }
-    df$naRowCount[df$colNames==col] <- length(dfData[is.na(dfData[,col]),col])
+    df$naRowCount[df$colNames==col] <- length(dfData[is.na(dfData[,col]),col])[1]
   }
   return(df)
   
   
 }
 
+
+createTrainDS <- function(ls, df){
+  return(df[ls])
+}
+
+createTestDS <- function(ls, df){
+  return(df[-ls])
+}

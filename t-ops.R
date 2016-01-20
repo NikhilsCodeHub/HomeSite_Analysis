@@ -6,6 +6,9 @@ library(rpart)
 library(randomForest)
 library(caret)
 library(dplyr)
+library(doMC)
+registerDoMC(cores = 4)
+
 
 
 ##----- Load, Clean and Impute Data
@@ -13,11 +16,14 @@ library(dplyr)
 dtrain <- read.csv("train.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
 dtest <- read.csv("test.csv", stringsAsFactors = FALSE, na.strings = c(""," ", "NaN", "NA", "Inf"))
 
-dfSummary <- dataset_summary(dtrain, dtest, colOutcome = "QuoteConversion_Flag")
-
-dtrain_missing <- tabulate_missing_values(dtrain)
-
 dtrain_final <- process_personal_16_17_18_19(dtrain)
+
+dtest_final <- process_personal_16_17_18_19(dtest)
+
+dfSummary <- dataset_summary(dtrain_final, dtest_final, colOutcome = "QuoteConversion_Flag")
+
+dtrain_missing <- tabulate_missing_values(dtrain_final)
+
 
 dtrain_final[,dtrain_missing$ColNames] <- lapply(dtrain_final[,dtrain_missing$ColNames],impute_missing_values)
 
@@ -27,18 +33,25 @@ dtrain_final <- tbl_df(dtrain_final)
 
 dtrain_final <- select(dtrain_final, -Original_Quote_Date, -QuoteNumber)
 
+dtrain_final <- data.frame(dtrain_final)
+dfSummary <- data.frame(dfSummary)
+
+dtrain_final <- set_factor_levels(dtrain_final, dfSummary)
 
 
-for (col in colnames(dtrain_final)[1:20]){
-  
-  print(paste("Processing ",col))
-  dtrain_final[,col] <- set_factor_levels(col_vector = dtrain_final[,col], dfSummary.row = dfSummary[dfSummary$colNames==col,])
-  
-}
+dtrain_final <- tbl_df(dtrain_final)
+df_personal <- select(dtrain_final, QuoteConversion_Flag, starts_with("Field"), starts_with("PersonalField"))
+df_property <- select(dtrain_final, QuoteConversion_Flag, starts_with("PropertyField"))
+df_geo <- select(dtrain_final, QuoteConversion_Flag, starts_with("GeographicField"))
+df_sales <- select(dtrain_final, QuoteConversion_Flag, starts_with("SalesField"), starts_with("CoverageField"))
 
-dtrain <- ImputeData(dtrain)
-na.cols <- sapply(dtrain[,1:dim(dtrain)[2]],anyNA)
-na.cols
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4)
+fit_personal <- train(QuoteConversion_Flag~., data = df_personal, method = "rf", trControl = fitControl)
+fit_sales <- train(QuoteConversion_Flag~., data = df_sales, method = "rf", trControl = fitControl)
+fit_property <- train(QuoteConversion_Flag~., data = df_property, method = "rf", trControl = fitControl)
+fit_geo <- train(QuoteConversion_Flag~., data = df_geo, method = "rf", trControl = fitControl)
+
 
 ##------ Create Data Partition for Validation
 ##------
