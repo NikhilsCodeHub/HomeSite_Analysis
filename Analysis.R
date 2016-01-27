@@ -18,6 +18,18 @@ dim(dtrain)
 
 ## Identify columns having NA values
 
+excludeNARows <- function()
+{
+  dtrain <- tbl_df(dtrain)
+  df.na <- dfSummary[dfSummary$naRowCount > 0,]
+  for(col in df.na$colNames)
+  {
+    dtrain <- filter(dtrain, col <> NA)
+    
+  }
+  
+  
+}
 
 
 

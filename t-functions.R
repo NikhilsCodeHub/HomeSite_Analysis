@@ -20,6 +20,17 @@ createFits <- function(df){
   
 }
 
+
+createModelFits <- function(df, method){
+  print(date())
+  #print(colnames(df)[2])
+  set.seed(2016)
+  fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 5, classProbs = FALSE)
+  fit <- train(as.factor(QuoteConversion_Flag)~., data = df, method = method, trControl = fitControl)
+  print(date())
+  return(fit)
+}
+
 ## lstFit -- List of model fits
 ## ptype -- raw or prob
 ## newData -- Test dataset to predict on
@@ -96,6 +107,11 @@ set_factor_levels <- function(dfData, dfSummary){
       
       }
     }
+    else if (dfSummary[dfSummary$colNames==col,"typeOfCol"] == "integer" & dfSummary[dfSummary$colNames==col,"nlevels"] < 27)
+    {
+      print("Found integers")
+      dfData[,col] <- factor(dfData[,col], levels=rnames)
+    } 
     else
     {
       print("Not a character type")
@@ -225,15 +241,6 @@ split_datasets <- function(dfData){
   return(dsList)
 }
 
-createModelFits <- function(df){
-  print(date())
-  print(colnames(df)[2])
-  set.seed(2016)
-  fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 4, classProbs = FALSE)
-  fit <- train(as.factor(QuoteConversion_Flag)~., data = df, method = "rf", trControl = fitControl)
-  print(date())
-  return(fit)
-}
 
 
 # feature.names=names(dtrain_final)

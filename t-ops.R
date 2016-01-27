@@ -112,15 +112,15 @@ dfSummary <- dataset_summary(dtrain_final, dtest_final, colOutcome = "QuoteConve
 ## -- Generate Combo Prediction on iValidate to crosscheck
 ## 
 
-  set.seed(2016)
-  predCombo <- predict.train(fitCombo, ivalidate, type = "raw")
+  #set.seed(2016)
+  #predCombo <- predict.train(fitCombo, ivalidate, type = "raw")
   
   
   
 ## -------------------------------------------
 ## -- Generate 1 set Predictions on Test Data
 ## 
-
+  set.seed(2016)
   dfCombo <- generatePredictions(lstFit = lstFitsTrain, newData = dtest_final, ptype = "raw")
 
   
@@ -130,8 +130,14 @@ dfSummary <- dataset_summary(dtrain_final, dtest_final, colOutcome = "QuoteConve
   set.seed(2016)
   predTest <- predict.train(fitCombo, dfCombo, type = "raw") 
   
+
+## -------------------------------------------
+## -- Generate Submission File
+##
+  my_solution <- data.frame(QuoteNumber = dtest$QuoteNumber, QuoteConversion_Flag=as.integer(predTest)-1, stringsAsFactors = FALSE)
   
-  
+  # Write your solution away to a csv file with the name my_solution.csv
+  write.csv(my_solution, file=paste0("HomeSite_Submission_", format(Sys.time(), "%m%d%Y%H%M"),".csv") , row.names=FALSE)  
   
   
   
